@@ -1,2 +1,2 @@
 # gymtonic
-Pybullet-based Gymnasium compatible environments
+Pybullet-based Gymnasium compatible environments.
