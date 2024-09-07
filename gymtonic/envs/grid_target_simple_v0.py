@@ -8,9 +8,9 @@ import pybullet_data
 import time
 from typing import Any
 
-class GridTargetEnv(GridBaseEnv):
+class GridTargetSimpleEnv(GridBaseEnv):
     """
-    GridTargetEnv class represents an environment where an agent moves on a grid to reach a target.
+    GridTargetSimpleEnv class represents an environment where an agent moves on a grid to reach a target.
     Args:
         n_rows (int): Number of rows in the grid (axis y). Default is 5.
         n_columns (int): Number of columns in the grid . Default is 5.
@@ -19,13 +19,13 @@ class GridTargetEnv(GridBaseEnv):
     """
 
     def __init__(self, n_rows=5, n_columns=5, smooth_movement=False, render_mode=None):
-        super(GridTargetEnv, self).__init__(n_rows=n_rows, n_columns=n_columns,
+        super(GridTargetSimpleEnv, self).__init__(n_rows=n_rows, n_columns=n_columns,
                                         smooth_movement=smooth_movement, render_mode=render_mode)
         
         # Redefine the observation space        
-        # Multidiscrete observation space of the size of the board with 3 possible values (empty, agent or target)
-        self.observation_space = spaces.MultiDiscrete(np.array([3] * self.n_rows * self.n_columns, dtype=np.int32))
-        
+        # Discrete observation space represeting the position of the agent
+        self.observation_space = spaces.Discrete(self.n_rows * self.n_columns)        
+
         # Initial target position
         self.target_pos = np.array([self.n_columns-1, self.n_rows-1], dtype=np.int32)
 
@@ -43,7 +43,7 @@ class GridTargetEnv(GridBaseEnv):
         # Random target position
         x_random = np.random.randint(0, self.n_columns)
         y_random = np.random.randint(0, self.n_rows)
-        self.target_pos = [x_random, y_random]
+        #self.target_pos = [x_random, y_random]
 
         if self.render_mode == 'human':
             self.update_visual_objects()
@@ -85,18 +85,15 @@ class GridTargetEnv(GridBaseEnv):
         return reward
 
     def get_observation(self):
-        observation = np.zeros((self.n_columns, self.n_rows), dtype=np.int32)
-        observation[self.agent_pos[0], self.agent_pos[1]] = 1
-        observation[self.target_pos[0], self.target_pos[1]] = 2
-        return observation.flatten()
-
+        observation = self.agent_pos[0] * self.n_columns + self.agent_pos[1]        
+        return observation
 
     def is_target_reached(self):
         return np.array_equal(self.agent_pos, self.target_pos)
 
 # Example usage
 if __name__ == "__main__":
-    env = gym.make('gymtonic/GridTarget-v0', n_rows=6, n_columns=10)
+    env = GridTargetSimpleEnv(n_rows=6, n_columns=10, render_mode='human')
     obs, info = env.reset()
     n_episodes = 10
     for _ in range(n_episodes):
