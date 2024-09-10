@@ -52,11 +52,13 @@ class SoccerSingleEnv(Env):
         # rotation and position of the agent, 
         # vector to the ball
 
-        self.observation_space = Box(low=np.array([-2*math.pi] + [-self.perimeter_side/2,-self.perimeter_side/2] + [-vision_length, -vision_length]), high=np.array([+2*math.pi] + [self.perimeter_side/2,self.perimeter_side/2] + [+vision_length, +vision_length]), shape=(5,), dtype=np.float32)
-        self.action_space = Box(low=np.array([-1, -1]), high=np.array([+1, 1]), shape=(2,), dtype=np.float32)
+        #self.observation_space = Box(low=np.array([-2*math.pi] + [-self.perimeter_side/2,-self.perimeter_side/2] + [-vision_length, -vision_length]), high=np.array([+2*math.pi] + [self.perimeter_side/2,self.perimeter_side/2] + [+vision_length, +vision_length]), shape=(5,), dtype=np.float32)
+        self.observation_space = Box(low=np.array([-2*math.pi] + [-self.perimeter_side/2,-self.perimeter_side/2] + [-vision_length, -vision_length]*2), high=np.array([+2*math.pi] + [self.perimeter_side/2,self.perimeter_side/2] + [+vision_length, +vision_length]*2), shape=(7,), dtype=np.float32)
+        self.action_space = Box(low=np.array([-1, -1]), high=np.array([+1, +1]), shape=(2,), dtype=np.float32)
        
         self.max_speed = max_speed
         self.player_touched_ball = False
+        self.goal_direction = 'right'
 
     def connnect_to_pybullet(self):
         self.physicsClient = p.connect(p.GUI if self.render_mode == 'human' else p.DIRECT)
@@ -100,6 +102,8 @@ class SoccerSingleEnv(Env):
         if not p.isConnected():
             self.connnect_to_pybullet()
 
+        self.goal_direction = 'right' if np.random.rand() > 0.5 else 'left'
+
         limit_spawn_perimeter_x = self.perimeter_side / 2 -1
         limit_spawn_perimeter_y = self.perimeter_side / 4 -1
 
@@ -107,10 +111,10 @@ class SoccerSingleEnv(Env):
         #random_coor_x = lambda: np.random.uniform(0, limit_spawn_perimeter_x)
         random_coor_y = lambda: np.random.uniform(-limit_spawn_perimeter_y, limit_spawn_perimeter_y)
 
-        # Player scores to the right
-        quat_red = p.getQuaternionFromEuler([0, 0, 0])
+        # Player facing upwards
+        quat_starting = p.getQuaternionFromEuler([0, 0, math.pi/2])
 
-        p.resetBasePositionAndOrientation(self.pybullet_player_id, [random_coor_x(), random_coor_y(),  0.5], quat_red)
+        p.resetBasePositionAndOrientation(self.pybullet_player_id, [random_coor_x(), random_coor_y(),  0.5], quat_starting)
         p.resetBaseVelocity(self.pybullet_player_id, [0, 0, 0], [0, 0, 0])
 
         # Random ball position version
@@ -188,6 +192,7 @@ class SoccerSingleEnv(Env):
 
     def get_observation(self):
         obs = np.array([], dtype=np.float32)
+
         my_orientation = self.get_orientation(self.pybullet_player_id)
         obs = np.concatenate((obs, [my_orientation]), dtype=np.float32)
 
@@ -200,8 +205,10 @@ class SoccerSingleEnv(Env):
         obs = np.concatenate((obs, ball_vector), dtype=np.float32)
         #obs = np.concatenate((obs, ball_pos[:2]), dtype=np.float32)
 
-        goal_line_vector = self.get_oriented_distance_vector(self.pybullet_player_id, self.pybullet_goal_right_id)[:2]
-        #obs = np.concatenate((obs, goal_line_vector), dtype=np.float32)
+        goal_line_id = self.pybullet_goal_right_id if self.goal_direction == 'right' else self.pybullet_goal_left_id
+
+        goal_line_vector = self.get_oriented_distance_vector(self.pybullet_player_id, goal_line_id)[:2]
+        obs = np.concatenate((obs, goal_line_vector), dtype=np.float32)
 
         return obs
 
@@ -217,7 +224,7 @@ class SoccerSingleEnv(Env):
 
         goal = self.is_goal()
         
-        if goal == 'red':
+        if goal == self.goal_direction:
             reward += 100
             terminated = True
             logger.info(f"Goal scored!")
@@ -262,8 +269,8 @@ class SoccerSingleEnv(Env):
 
         Returns:
             None if no goal,
-            'blue' if the goal was scored in the left hand side goal gap,
-            'red' if scored in the opposite side.
+            'right' if the goal was scored in the right hand side goal gap
+            'left' if the goal was scored in the left hand side goal gap,
         """
         # Get the position and radius of the ball
         ball_position = p.getBasePositionAndOrientation(self.pybullet_ball_id)[0]
@@ -282,13 +289,13 @@ class SoccerSingleEnv(Env):
         right_goal_x = length / 2
         if (ball_x - ball_radius > right_goal_x - thickness and
             -segment_length / 2 < ball_y < segment_length / 2):
-            return 'red'
+            return 'right'
         
         # Check if the ball is completely within the left goal gap
         left_goal_x = -length / 2
         if (ball_x + ball_radius < left_goal_x + thickness and
             -segment_length / 2 < ball_y < segment_length / 2):
-            return 'blue'
+            return 'left'
 
         # No goal detected
         return False

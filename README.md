@@ -1,2 +1,17 @@
 # gymtonic
 Pybullet-based Gymnasium compatible environments.
+
+This project provides a collection of Pybullet-based Gymnasium compatible environments. Each environment is designed to offer a unique task for reinforcement learning agents.
+
+To learn more about each environment, click on the name:
+
+## Simple Grid-based environments
+- [GridTarget](./docs/grid_target.md)
+- [GridTargetSimple](./docs/grid_target_simple.md)
+- [GridTargetDirectional](./docs/grid_target_directional.md)
+
+
+## Soccer environments
+- [SoccerSingle](docs/soccer_single.md)
+
+Feel free to explore these environments and start training your RL agents!
