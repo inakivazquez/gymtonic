@@ -1,5 +1,5 @@
 import numpy as np
-from gymtonic.test.common import QTable, ReturnsTable
+from common import QTable, ReturnsTable
 
 class Montecarlo_FirstVisit:
     def __init__(self, env):

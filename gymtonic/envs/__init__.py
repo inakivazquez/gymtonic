@@ -8,6 +8,12 @@ gymtonic/GridTargetDiff-v0: GridTargetEnv with smooth_movement set to True.
 
 """
 register(
+    id='gymtonic/SoccerSingle-v0',
+    entry_point='gymtonic.envs.soccer_single_v0:SoccerSingleEnv',
+    max_episode_steps=500
+)
+
+register(
     id='gymtonic/GridTargetSimple-v0',
     entry_point='gymtonic.envs.grid_target_simple_v0:GridTargetSimpleEnv',
     max_episode_steps=100,
