@@ -54,7 +54,7 @@ class SoccerSingleEnv(Env):
         # vector to the ball
 
         #self.observation_space = Box(low=np.array([-2*math.pi] + [-self.perimeter_side/2,-self.perimeter_side/2] + [-vision_length, -vision_length]), high=np.array([+2*math.pi] + [self.perimeter_side/2,self.perimeter_side/2] + [+vision_length, +vision_length]), shape=(5,), dtype=np.float32)
-        self.observation_space = Box(low=np.array([-2*math.pi] + [-self.perimeter_side/2,-self.perimeter_side/2] + [-vision_length, -vision_length]*2), high=np.array([+2*math.pi] + [self.perimeter_side/2,self.perimeter_side/2] + [+vision_length, +vision_length]*2), shape=(7,), dtype=np.float32)
+        self.observation_space = Box(low=np.array([-2*math.pi, -10] + [-self.perimeter_side/2,-self.perimeter_side/2] + [-vision_length, -vision_length]*2), high=np.array([+2*math.pi, 10] + [self.perimeter_side/2,self.perimeter_side/2] + [+vision_length, +vision_length]*2), shape=(8,), dtype=np.float32)
         # Añadir velocidad y entonces no esperar a que se estabilice el movmiento
         self.action_space = Box(low=np.array([-1, -1]), high=np.array([+1, +1]), shape=(2,), dtype=np.float32)
         # Probar con acciones discretas: giro de n grados, avance de n fuerza
@@ -86,7 +86,7 @@ class SoccerSingleEnv(Env):
         if self.render_mode == 'human':
             time.sleep(self.SIMULATION_STEP_DELAY)
 
-    def wait_until_stable(self, sim_steps=500):
+    def wait_until_stable(self, sim_steps=50):
         self.player_touched_ball = False
         for step in range(sim_steps):
             self.step_simulation()
@@ -96,10 +96,6 @@ class SoccerSingleEnv(Env):
             # Every 10 sim steps, check status
             if step%10 == 0:
                 if self.is_goal() or self.is_ball_out_of_bounds():
-                    return
-                # If the player is not moving, return
-                player_velocity, angular_velocity = p.getBaseVelocity(self.pybullet_player_id)
-                if np.linalg.norm(player_velocity) < self.max_speed and np.linalg.norm(angular_velocity) < self.max_speed/100:
                     return
 
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None) -> tuple[ObsType, dict[str, Any]]:
@@ -183,7 +179,7 @@ class SoccerSingleEnv(Env):
         self.wait_until_stable()
 
     def move_player(self, force):
-        factor = 500
+        factor = 1000
         force *= factor * self.max_speed
         force = [force, 0, 0]
         position, orientation = p.getBasePositionAndOrientation(self.pybullet_player_id)
@@ -218,6 +214,11 @@ class SoccerSingleEnv(Env):
 
         my_orientation = self.get_orientation(self.pybullet_player_id)
         obs = np.concatenate((obs, [my_orientation]), dtype=np.float32)
+
+        # Add speed
+        velocity, _ = p.getBaseVelocity(self.pybullet_player_id)
+        velocity = math.sqrt(velocity[0]**2 + velocity[1]**2)
+        obs = np.concatenate((obs, [velocity]), dtype=np.float32)
 
         my_pos, _ = p.getBasePositionAndOrientation(self.pybullet_player_id)
         obs = np.concatenate((obs, my_pos[:2]), dtype=np.float32)

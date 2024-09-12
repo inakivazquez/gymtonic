@@ -1,3 +1,6 @@
+[![Python](https://img.shields.io/pypi/pyversions/gymtonic.svg)](https://badge.fury.io/py/gymtonic)
+[![PyPI](https://badge.fury.io/py/gymtonic.svg)](https://badge.fury.io/py/gymtonic)
+
 # gymtonic
 Pybullet-based Gymnasium compatible environments.
 

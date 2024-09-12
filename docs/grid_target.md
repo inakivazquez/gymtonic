@@ -43,7 +43,7 @@ The size of the grid can be configured with `n_rows` and `n_columns`. Default is
 
 For example, to create a 6 x 10 grid:
 ```python
-import gymnasium
+import gymnasium as gym
 import gymtonic
 
 env = gym.make('gymtonic/GridTarget-v0', n_rows=6, n_columns=10, render_mode='human')

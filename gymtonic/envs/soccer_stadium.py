@@ -16,12 +16,12 @@ def create_stadium(side_length):
     pass
     base_height = 0.4
     _create_turf(side_length, base_height)
-    _create_perimeter(side_length, thickness=0.1, height=0.4, base_height=base_height, color=[0.7, 0.7, 0.7, 1])
+    pybullet_wall_ids = _create_perimeter(side_length, thickness=0.1, height=0.4, base_height=base_height, color=[0.7, 0.7, 0.7, 1])
     # Add the goals
     pybullet_goal_right_id = _create_goal([side_length/2 - 0.10, 0, base_height], p.getQuaternionFromEuler([0, 0, 0]))
     pybullet_goal_left_id = _create_goal([-side_length/2 + 0.10, 0, base_height], p.getQuaternionFromEuler([0, 0, math.pi]))
 
-    return pybullet_goal_right_id, pybullet_goal_left_id
+    return pybullet_goal_right_id, pybullet_goal_left_id, pybullet_wall_ids
 
 def create_player(position = [0,0,0], color = [0.8, 0.1, 0.1, 1]):
     player_id = p.loadURDF("cube.urdf", position, useFixedBase=False, globalScaling=0.4)
@@ -31,14 +31,14 @@ def create_player(position = [0,0,0], color = [0.8, 0.1, 0.1, 1]):
     return player_id
 
 def create_ball(position):
-        pybullet_ball_id = p.loadURDF("soccerball.urdf", [0, 0, 0.5], useFixedBase=False, globalScaling=0.3)
+        pybullet_ball_id = p.loadURDF("soccerball.urdf", position, useFixedBase=False, globalScaling=0.3)
 
         lateral_friction = 1.0
         spinning_friction = 0.05
         rolling_friction = 0.05
         p.changeDynamics(bodyUniqueId=pybullet_ball_id, linkIndex=-1,
                          lateralFriction=lateral_friction, spinningFriction=spinning_friction, rollingFriction=rolling_friction, 
-                         mass = 0.1, restitution=0.9) # Restitution is the bounciness of the ball
+                         mass = 0.1, restitution=0.8) # Restitution is the bounciness of the ball
         return pybullet_ball_id
 
 
@@ -128,6 +128,9 @@ def _create_perimeter(length, thickness, height, base_height, color):
     ]
 
     # Create walls
+    pybullet_wall_ids = []
+
+    # Create walls
     # Long walls
     for i in range(2):
         id = p.createMultiBody(baseMass=0,
@@ -137,6 +140,7 @@ def _create_perimeter(length, thickness, height, base_height, color):
                         baseOrientation=orientations[i])
         #p.setCollisionFilterGroupMask(id, -1, 2, 1)
         p.changeDynamics(id, -1, restitution=0.8) # Bounciness
+        pybullet_wall_ids.append(id)
 
     # Short walls with gaps
     for i in range(2, 6):
@@ -147,12 +151,21 @@ def _create_perimeter(length, thickness, height, base_height, color):
                         baseOrientation=orientations[i])
         #p.setCollisionFilterGroupMask(id, -1, 2, 1)
         p.changeDynamics(id, -1, restitution=0.8) # Bounciness
+        pybullet_wall_ids.append(id)
 
     # Add the 4 corners
-    _create_curved_corner([half_length - half_thickness - corner_radius, half_width - half_thickness - corner_radius, base_height + half_height], 2*half_height, radius=1, orientation=0, color=color)
-    _create_curved_corner([half_length - half_thickness - corner_radius, -half_width + half_thickness + corner_radius, base_height + half_height], 2*half_height, radius=1, orientation=-math.pi/2, color=color)
-    _create_curved_corner([-half_length + half_thickness + corner_radius, half_width - half_thickness - corner_radius, base_height + half_height], 2*half_height, radius=1, orientation=math.pi/2, color=color)
-    _create_curved_corner([-half_length + half_thickness + corner_radius, -half_width + half_thickness + corner_radius, base_height + half_height], 2*half_height, radius=1, orientation=math.pi, color=color)
+    pybullet_corners_1 = _create_curved_corner([half_length - half_thickness - corner_radius, half_width - half_thickness - corner_radius, base_height + half_height], 2*half_height, radius=1, orientation=0, color=color)
+    pybullet_corners_2 =_create_curved_corner([half_length - half_thickness - corner_radius, -half_width + half_thickness + corner_radius, base_height + half_height], 2*half_height, radius=1, orientation=-math.pi/2, color=color)
+    pybullet_corners_3 =_create_curved_corner([-half_length + half_thickness + corner_radius, half_width - half_thickness - corner_radius, base_height + half_height], 2*half_height, radius=1, orientation=math.pi/2, color=color)
+    pybullet_corners_4 =_create_curved_corner([-half_length + half_thickness + corner_radius, -half_width + half_thickness + corner_radius, base_height + half_height], 2*half_height, radius=1, orientation=math.pi, color=color)
+
+    pybullet_wall_ids.extend(pybullet_corners_1)
+    pybullet_wall_ids.extend(pybullet_corners_2)
+    pybullet_wall_ids.extend(pybullet_corners_3)
+    pybullet_wall_ids.extend(pybullet_corners_4)
+
+    return pybullet_wall_ids
+
 
 def _create_curved_corner(position, height, radius=1, orientation=0, color = [0,0,0,1], num_segments=30):
     """
@@ -166,6 +179,8 @@ def _create_curved_corner(position, height, radius=1, orientation=0, color = [0,
     """
     angle_step = np.pi / 2 / num_segments  # Divide 90 degrees into segments
     
+    pybullet_object_ids = []
+
     # Loop to create cylinder segments
     for i in range(num_segments):
         # Calculate the angle for each segment
@@ -184,6 +199,9 @@ def _create_curved_corner(position, height, radius=1, orientation=0, color = [0,
         p.changeVisualShape(cylinder_id, -1, rgbaColor=color)
         #p.setCollisionFilterGroupMask(cylinder_id, -1, 2, 1)
         p.changeDynamics(cylinder_id, -1, restitution=0.8) # Bounciness
+        pybullet_object_ids.append(cylinder_id)
+
+    return pybullet_object_ids
 
 
 def _create_goal(position, orientation):
