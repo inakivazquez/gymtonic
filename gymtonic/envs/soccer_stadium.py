@@ -26,9 +26,54 @@ def create_stadium(side_length):
 def create_player(position = [0,0,0], color = [0.8, 0.1, 0.1, 1]):
     player_id = p.loadURDF("cube.urdf", position, useFixedBase=False, globalScaling=0.4)
     p.changeVisualShape(player_id, -1, rgbaColor=color)
+    p.changeVisualShape(player_id, linkIndex=1, rgbaColor=[0,0,0,1])
     p.changeDynamics(player_id, -1, restitution=0.8) # Bounciness
     p.changeDynamics(player_id, -1, mass=1, lateralFriction=1, rollingFriction=1, spinningFriction=1)
+
     return player_id
+
+def _create_player(position = [0,0,0], color = [0.8, 0.1, 0.1, 1]):
+    position = [0, 0, 0.5]
+    cube_size = 0.4
+    cube_collision_id = p.createCollisionShape(p.GEOM_BOX, halfExtents=[cube_size/2] * 3)
+    cube_visual_id = p.createVisualShape(p.GEOM_BOX, halfExtents=[cube_size/2] * 3, rgbaColor=color)
+    player_id = p.createMultiBody(
+            baseMass=1.0,
+            baseCollisionShapeIndex=cube_collision_id,
+            baseVisualShapeIndex=cube_visual_id,
+            basePosition=position)
+    
+    small_collision_shape_id = p.createCollisionShape(p.GEOM_BOX, halfExtents=[cube_size/10] * 3)
+    small_visual_shape_id = p.createVisualShape(p.GEOM_BOX, halfExtents=[cube_size/10] * 3, rgbaColor=[1, 1, 1, 1])
+
+    # Add another link with a joint connecting it to the base
+    link_id = p.createMultiBody(
+        baseMass=0.0001,
+        baseCollisionShapeIndex=small_collision_shape_id,
+        baseVisualShapeIndex=small_visual_shape_id,
+        basePosition=[0, 0, cube_size]  # Position on top of the base link
+    )
+
+    # Add a joint connecting the two links
+    joint_id = p.createConstraint(
+        parentBodyUniqueId=player_id,
+        parentLinkIndex=-1,
+        childBodyUniqueId=link_id,
+        childLinkIndex=-1,
+        jointType=p.JOINT_FIXED,
+        jointAxis=[0, 0, 1],
+        parentFramePosition=[cube_size/2, 0, 0],
+        childFramePosition=[0, 0, -cube_size/10]
+    )
+
+    p.changeVisualShape(player_id, -1, rgbaColor=color)
+    p.changeVisualShape(player_id, linkIndex=1, rgbaColor=[0,0,0,1])
+    p.changeDynamics(player_id, -1, restitution=0.8) # Bounciness
+    p.changeDynamics(player_id, -1, mass=1, lateralFriction=1, rollingFriction=1, spinningFriction=1)
+
+    return player_id
+
+
 
 def create_ball(position):
         pybullet_ball_id = p.loadURDF("soccerball.urdf", position, useFixedBase=False, globalScaling=0.3)
@@ -62,14 +107,15 @@ def _create_turf(side_length, height = 0.4):
     )
 
     # Create the multi-body object
-    perimeter_id = p.createMultiBody(
+    turf_id = p.createMultiBody(
         baseMass=0,  # Static object
         baseCollisionShapeIndex=collision_shape_id,
         baseVisualShapeIndex=visual_shape_id,
         basePosition=[0, 0, half_height]
     )
 
-    p.changeDynamics(perimeter_id, -1, lateralFriction=0.5)
+    p.changeDynamics(turf_id, -1, lateralFriction=0.5)
+    return turf_id
 
 
 def _create_perimeter(length, thickness, height, base_height, color):

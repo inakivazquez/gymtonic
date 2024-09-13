@@ -25,7 +25,7 @@ class SoccerSingleEnv(Env):
         super(SoccerSingleEnv, self).__init__()
         self.render_mode = render_mode
 
-        self.connnect_to_pybullet()
+        self.connnect_to_pybullet(record_video_file)
 
         # Load the plane and objects
         self.pybullet_plane_id = p.loadURDF("plane.urdf", [0,0,0])
@@ -37,9 +37,7 @@ class SoccerSingleEnv(Env):
         self.pybullet_goal_left_id = pybullet_ids[1]
         self.pybullet_wall_ids = pybullet_ids[2]
 
-        # Create the players
-        self.pybullet_player_id = []
-        
+        # Create the player and the ball
         red_color = [0.8, 0.1, 0.1, 1]
 
         self.pybullet_player_id = create_player([0, 0, 0], red_color)
@@ -48,25 +46,23 @@ class SoccerSingleEnv(Env):
 
         vision_length = self.perimeter_side
 
-        # Create the agents
-        # Observation space is
-        # rotation and position of the agent, 
-        # vector to the ball
+        # Create the agent
+        # Observation space is rotation, and linea volicity of the agent, 
+        # its position in the field, the vector to the ball, and the vector to the goal line
 
-        #self.observation_space = Box(low=np.array([-2*math.pi] + [-self.perimeter_side/2,-self.perimeter_side/2] + [-vision_length, -vision_length]), high=np.array([+2*math.pi] + [self.perimeter_side/2,self.perimeter_side/2] + [+vision_length, +vision_length]), shape=(5,), dtype=np.float32)
-        self.observation_space = Box(low=np.array([-2*math.pi] + [-self.perimeter_side/2,-self.perimeter_side/2] + [-vision_length, -vision_length]*2), high=np.array([+2*math.pi] + [self.perimeter_side/2,self.perimeter_side/2] + [+vision_length, +vision_length]*2), shape=(7,), dtype=np.float32)
-        # Añadir velocidad y entonces no esperar a que se estabilice el movmiento
+        self.observation_space = Box(low=np.array([-2*math.pi, -10] + [-self.perimeter_side/2,-self.perimeter_side/2] + [-vision_length, -vision_length]*2), high=np.array([+2*math.pi, 10] + [self.perimeter_side/2,self.perimeter_side/2] + [+vision_length, +vision_length]*2), shape=(8,), dtype=np.float32)
+
         self.action_space = Box(low=np.array([-1, -1]), high=np.array([+1, +1]), shape=(2,), dtype=np.float32)
-        # Probar con acciones discretas: giro de n grados, avance de n fuerza
-        # 0=Nothing, 1: Rotate right, 2: Rotate left, 3: Move forward, 4: Move backward
-        #self.action_space = Discrete(5)
 
         self.max_speed = max_speed
         self.goal_target = goal_target
         self.player_touched_ball = False
 
-    def connnect_to_pybullet(self):
-        self.physicsClient = p.connect(p.GUI if self.render_mode == 'human' else p.DIRECT)
+    def connnect_to_pybullet(self, record_video_file=None):
+        if record_video_file is not None:
+            self.physicsClient = p.connect(p.GUI if self.render else p.DIRECT, options=f"--mp4='{record_video_file}'")
+        else:
+            self.physicsClient = p.connect(p.GUI if self.render else p.DIRECT)
 
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0, 0, -9.81)
@@ -165,25 +161,19 @@ class SoccerSingleEnv(Env):
                 p.resetBasePositionAndOrientation(self.pybullet_player_id, position, p.getQuaternionFromEuler([0, 0, angle]))
                 self.step_simulation()
             p.resetBaseVelocity(self.pybullet_player_id, linearVelocity=linear_velocity, angularVelocity=angular_velocity)
+        """
         else:
             # Necessary to reset to avoid weird orientations after colission with ball or wall
             p.resetBasePositionAndOrientation(self.pybullet_player_id, position, p.getQuaternionFromEuler([0, 0, angle]))
             p.applyExternalTorque(self.pybullet_player_id, -1, [0,0,rotation_offset*100], p.WORLD_FRAME)
             self.wait_until_stable()
-
-        # Limit the speed, only applies when inertia is conserved, otherwise velocity is 0
-        velocity, _ = p.getBaseVelocity(self.pybullet_player_id)
-        velocity = math.sqrt(velocity[0]**2 + velocity[1]**2)
-        # If velocity is greater than max, cancel the force, only applies when inertia is conserved
-        # No longer applicable since we wait until stable
-        #if velocity > self.max_speed:
-        #    force = 0
+        """
 
         self.move_player(force)        
         self.wait_until_stable()
 
     def move_player(self, force):
-        factor = 500
+        factor = 1000
         force *= factor * self.max_speed
         force = [force, 0, 0]
         position, orientation = p.getBasePositionAndOrientation(self.pybullet_player_id)
@@ -218,6 +208,11 @@ class SoccerSingleEnv(Env):
 
         my_orientation = self.get_orientation(self.pybullet_player_id)
         obs = np.concatenate((obs, [my_orientation]), dtype=np.float32)
+
+        # Add speed
+        velocity, _ = p.getBaseVelocity(self.pybullet_player_id)
+        velocity = math.sqrt(velocity[0]**2 + velocity[1]**2)
+        obs = np.concatenate((obs, [velocity]), dtype=np.float32)
 
         my_pos, _ = p.getBasePositionAndOrientation(self.pybullet_player_id)
         obs = np.concatenate((obs, my_pos[:2]), dtype=np.float32)
@@ -272,7 +267,6 @@ class SoccerSingleEnv(Env):
         return False
 
     def kick_ball(self):
-        return
         # Get the position of the agent and the ball
         agent_position,_ = p.getBasePositionAndOrientation(self.pybullet_player_id)
         ball_position,_ = p.getBasePositionAndOrientation(self.pybullet_ball_id)

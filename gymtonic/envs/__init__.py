@@ -14,16 +14,17 @@ register(
 )
 
 register(
+    id='gymtonic/SoccerSingleDiscrete-v0',
+    entry_point='gymtonic.envs.soccer_single_discrete_v0:SoccerSingleDiscreteEnv',
+    max_episode_steps=500
+)
+
+register(
     id='gymtonic/SoccerSingleRaycast-v0',
     entry_point='gymtonic.envs.soccer_single_ray_v0:SoccerSingleRaycastEnv',
     max_episode_steps=500
 )
 
-register(
-    id='gymtonic/SoccerSingleVel-v0',
-    entry_point='gymtonic.envs.soccer_single_vel_v0:SoccerSingleEnv',
-    max_episode_steps=500
-)
 
 register(
     id='gymtonic/GridTargetSimple-v0',
