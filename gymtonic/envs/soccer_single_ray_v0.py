@@ -1,16 +1,10 @@
 import logging
 import math
-import time
 
 import numpy as np
 import pybullet as p
-import pybullet_data
-from gymnasium import Env
 from gymnasium.spaces import Box
-from gymnasium.core import ObsType, ActType, SupportsFloat, RenderFrame
-from typing import Any
 
-from gymtonic.envs.soccer_stadium import create_stadium, create_player, create_ball
 from gymtonic.envs.soccer_single_v0 import SoccerSingleEnv
 from gymtonic.envs.raycast import raycast_horizontal_detect
 
@@ -30,26 +24,31 @@ class SoccerSingleRaycastEnv(SoccerSingleEnv):
 
         self.raycast_vision_length = self.perimeter_side*2
         raycast_len = 5 # Five components per raycast: one-hot for ball, goal-right, goal-left or wall, and distance
-        self.n_raycasts = 5
-        self.raycast_cover_angle = 2*math.pi/12
+        self.n_raycasts = 11
+        self.raycast_cover_angle = 2*math.pi/3
 
         # Create the agents
         # Observation space is
-        # rotation and position of the agent, 
-        # vector to the ball
-        self.observation_space=Box(low=np.array([0,0,0,0, -self.raycast_vision_length]*self.n_raycasts), high=np.array([1,1,1,1, self.raycast_vision_length]*self.n_raycasts), shape=(raycast_len*self.n_raycasts,), dtype=np.float32)
-
-        #self.observation_space = Box(low=np.array([-2*math.pi] + [-self.perimeter_side/2,-self.perimeter_side/2] + [-vision_length, -vision_length]), high=np.array([+2*math.pi] + [self.perimeter_side/2,self.perimeter_side/2] + [+vision_length, +vision_length]), shape=(5,), dtype=np.float32)
-        #self.observation_space = Box(low=np.array([-2*math.pi] + [-self.perimeter_side/2,-self.perimeter_side/2] + [-vision_length, -vision_length]*2), high=np.array([+2*math.pi] + [self.perimeter_side/2,self.perimeter_side/2] + [+vision_length, +vision_length]*2), shape=(7,), dtype=np.float32)
+        # rotation and velocity of the agent, 
+        # raycast info
+        self.observation_space=Box(low=np.array([-2*math.pi, -10] + [0,0,0,0, -self.raycast_vision_length]*self.n_raycasts), high=np.array([+2*math.pi, +10] + [1,1,1,1, self.raycast_vision_length]*self.n_raycasts), shape=(2 + raycast_len*self.n_raycasts,), dtype=np.float32)
 
 
     def get_observation(self):
         obs = np.array([])
+        
         my_pos,_ = p.getBasePositionAndOrientation(self.pybullet_player_id)
-        #obs = np.append(obs, my_pos)
-
         my_angle = self.get_orientation(self.pybullet_player_id)
 
+        # Add angle
+        obs = np.concatenate((obs, [my_angle]), dtype=np.float32)
+
+        # Add speed
+        velocity, _ = p.getBaseVelocity(self.pybullet_player_id)
+        velocity = math.sqrt(velocity[0]**2 + velocity[1]**2)
+        obs = np.concatenate((obs, [velocity]), dtype=np.float32)
+
+        # Add raycasts
         raycast_data = self.raycast_detect_objects(my_pos, my_angle, covering_angle=self.raycast_cover_angle)
         obs = np.concatenate((obs, raycast_data), dtype=np.float32)
         return obs
@@ -80,3 +79,4 @@ class SoccerSingleRaycastEnv(SoccerSingleEnv):
 
             results = np.append(results, one_hot_type + [distance])
         return results
+

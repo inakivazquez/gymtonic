@@ -60,9 +60,9 @@ class SoccerSingleEnv(Env):
 
     def connnect_to_pybullet(self, record_video_file=None):
         if record_video_file is not None:
-            self.physicsClient = p.connect(p.GUI if self.render else p.DIRECT, options=f"--mp4='{record_video_file}'")
+            self.physicsClient = p.connect(p.GUI if self.render_mode else p.DIRECT, options=f"--mp4='{record_video_file}'")
         else:
-            self.physicsClient = p.connect(p.GUI if self.render else p.DIRECT)
+            self.physicsClient = p.connect(p.GUI if self.render_mode else p.DIRECT)
 
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0, 0, -9.81)

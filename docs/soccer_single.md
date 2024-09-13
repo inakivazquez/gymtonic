@@ -1,7 +1,7 @@
 # Soccer Single
 
-```{figure} ./images/soccer_single.gif 
-:width: 200px
+```{figure} ./images/soccer_single_continuous.gif 
+:width: 450px
 :name: soccer_single
 ```
 
@@ -16,18 +16,18 @@
 
 
 ### Description
-This environment represents a soccer pitch and an player (agent) that must learn to score a goal. The player and the ball appear at random positions on the field.
-GOAL DIRECTION?
+This environment represents a soccer pitch and an player (agent) that must learn to score a goal. The player and the ball appear at random positions on the field. The goal dirction can be configured or selected randomly in each episode.
 
 ### Action Space
 The action space has two continuous dimenions. The first one [-1, 1] represents how to rotate the player (scaled to `math.pi/6`), the second, also in the range [-1, 1], represents the force to move in the forward direction where the player is oriented (negative values move backwards). 
 
 ### Observation Space
-The state is an 7-dimensional vector representing:
+The state is an 8-dimensional vector representing:
 - The current orientation of the player
+- The current linear velocity of the player
 - Absolute position (x,y) of the player
-- Relative position (x,y) of the ball relative to the player
-- Relative position (x,y) of the goal line relative to the player
+- Relative position (x,y) of the ball from the player
+- Relative position (x,y) of the goal line from the player
 
 ### Rewards
 Rewards are distributed ass follows:

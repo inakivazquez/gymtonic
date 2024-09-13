@@ -1,16 +1,10 @@
 import logging
 import math
-import time
 
 import numpy as np
 import pybullet as p
-import pybullet_data
-from gymnasium import Env
 from gymnasium.spaces import Box, Discrete
-from gymnasium.core import ObsType, ActType, SupportsFloat, RenderFrame
-from typing import Any
 
-from gymtonic.envs.soccer_stadium import create_stadium, create_player, create_ball
 from gymtonic.envs.soccer_single_v0 import SoccerSingleEnv
 
 logger = logging.getLogger(__name__)
