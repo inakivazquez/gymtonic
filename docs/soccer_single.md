@@ -1,9 +1,6 @@
 # Soccer Single
 
-```{figure} ./images/soccer_single_continuous.gif 
-:width: 450px
-:name: soccer_single
-```
+![Soccer single](images/soccer_single_continuous.gif)
 
 
 |   |   |
