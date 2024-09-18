@@ -6,9 +6,9 @@
 |   |   |
 |---|---|
 | Action Space | `Box(-1, +1, (2,), float32)` |
-| Observation Shape | `(7,)` |
-| Observation High | `Box([2*math.pi, perimeter_side/2, perimeter_side/2, perimeter_side, perimeter_side, perimeter_side, perimeter_side ])` |
-| Observation Low | `Box([-2*math.pi, -perimeter_side/2, -perimeter_side/2, -perimeter_side, -perimeter_side, -perimeter_side, -perimeter_side ] )` |
+| Observation Shape | `(8,)` |
+| Observation High | `Box([2*math.pi, +10, perimeter_side/2, perimeter_side/2, perimeter_side, perimeter_side, perimeter_side, perimeter_side ])` |
+| Observation Low | `Box([-2*math.pi, -10, -perimeter_side/2, -perimeter_side/2, -perimeter_side, -perimeter_side, -perimeter_side, -perimeter_side ] )` |
 | Import | `gymnasium.make("gymtonic/SoccerSingle-v0")` | 
 
 

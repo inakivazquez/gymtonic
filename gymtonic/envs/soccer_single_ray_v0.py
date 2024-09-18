@@ -53,11 +53,11 @@ class SoccerSingleRaycastEnv(SoccerSingleEnv):
         obs = np.concatenate((obs, raycast_data), dtype=np.float32)
         return obs
 
-    def wait_until_stable(self, sim_steps=500):
-        super().wait_until_stable(sim_steps)
-        # This is the visual optimal point for raycast removal
+    def wait_for_simulation(self, sim_steps=500):
         if self.render_mode == 'human':
             p.removeAllUserDebugItems()
+        super().wait_for_simulation(sim_steps)
+        # This is the visual optimal point for raycast removal
 
 
     def raycast_detect_objects(self, source_pos_x_y, source_angle_z, covering_angle=2*math.pi):

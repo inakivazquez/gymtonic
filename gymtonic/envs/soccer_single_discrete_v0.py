@@ -49,7 +49,7 @@ class SoccerSingleDiscreteEnv(SoccerSingleEnv):
             force *= force_factor * self.max_speed
             forward_force = [force, 0, 0]  # Apply force in the cube's local forward direction (X-axis)
             p.applyExternalForce(self.pybullet_player_id, -1, forward_force, [0, 0, 0], p.LINK_FRAME)        
-            self.wait_until_stable()
+            self.wait_for_simulation()
 
     def get_observation(self):
         obs = np.array([], dtype=np.float32)

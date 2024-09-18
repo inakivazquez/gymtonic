@@ -21,7 +21,7 @@ class SoccerSingleEnv(Env):
     SIMULATION_STEP_DELAY = 1.0 / 240.0
     DISCRETE_ROTATION = True
 
-    def __init__(self, max_speed = 1, perimeter_side = 10, goal_target='right', render_mode=None, record_video_file=None):
+    def __init__(self, max_speed = 1, perimeter_side = 10, goal_target='random', render_mode=None, record_video_file=None):
         super(SoccerSingleEnv, self).__init__()
         self.render_mode = render_mode
 
@@ -82,7 +82,7 @@ class SoccerSingleEnv(Env):
         if self.render_mode == 'human':
             time.sleep(self.SIMULATION_STEP_DELAY)
 
-    def wait_until_stable(self, sim_steps=500):
+    def wait_for_simulation(self, sim_steps=500):
         self.player_touched_ball = False
         for step in range(sim_steps):
             self.step_simulation()
@@ -94,8 +94,8 @@ class SoccerSingleEnv(Env):
                 if self.is_goal() or self.is_ball_out_of_bounds():
                     return
                 # If the player is not moving, return
-                player_velocity, angular_velocity = p.getBaseVelocity(self.pybullet_player_id)
-                if np.linalg.norm(player_velocity) < self.max_speed and np.linalg.norm(angular_velocity) < self.max_speed/100:
+                player_velocity, _ = p.getBaseVelocity(self.pybullet_player_id)
+                if np.linalg.norm(player_velocity) < 2*self.max_speed:
                     return
 
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None) -> tuple[ObsType, dict[str, Any]]:
@@ -134,7 +134,7 @@ class SoccerSingleEnv(Env):
         # Random ball position version
         p.resetBasePositionAndOrientation(self.pybullet_ball_id, [random_coor_x(), random_coor_y(),  1], [0, 0, 0, 1])
         p.resetBaseVelocity(self.pybullet_ball_id, [0, 0, 0], [0, 0, 0])
-        self.wait_until_stable()
+        self.wait_for_simulation()
 
         info = {}
         obs = self.get_observation()
@@ -170,7 +170,7 @@ class SoccerSingleEnv(Env):
         """
 
         self.move_player(force)        
-        self.wait_until_stable()
+        self.wait_for_simulation()
 
     def move_player(self, force):
         factor = 1000

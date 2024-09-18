@@ -58,7 +58,7 @@ class SoccerSingleContinuousEnv(SoccerSingleEnv):
             p.resetBaseVelocity(self.pybullet_player_id, linearVelocity=linear_velocity, angularVelocity=angular_velocity)
 
         self.move_player(force)        
-        self.wait_until_stable()
+        self.wait_for_simulation()
 
     def move_player(self, force):
         factor = 1000
