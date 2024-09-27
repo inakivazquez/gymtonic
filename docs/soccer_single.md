@@ -13,10 +13,10 @@
 
 
 ### Description
-This environment represents a soccer pitch and an player (agent) that must learn to score a goal. The player and the ball appear at random positions on the field. The goal dirction can be configured or selected randomly in each episode.
+This environment represents a soccer pitch and a player (agent) that must learn to score a goal. The player and the ball appear at random positions on the field. The goal direction can be configured or selected randomly in each episode.
 
 ### Action Space
-The action space has two continuous dimenions. The first one [-1, 1] represents how to rotate the player (scaled to `math.pi/6`), the second, also in the range [-1, 1], represents the force to move in the forward direction where the player is oriented (negative values move backwards). 
+The action space has two continuous dimensions. The first one [-1, 1] represents the rotation to apply to the player (scaled to `math.pi/6`), the second, also in the range [-1, 1], represents the force to move in the forward direction according to the player orientation (negative values move backwards). 
 
 ### Observation Space
 The state is an 8-dimensional vector representing:
