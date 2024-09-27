@@ -2,11 +2,11 @@ from setuptools import setup, find_packages
 
 setup(
     name='gymtonic',
-    version='0.1.1',
+    version='0.1.3',
     packages=find_packages(),
     install_requires=[
-        'numpy',
-        'gymnasium',
+        'numpy==1.26.4',
+        'gymnasium==0.29.1',
         'pybullet'
     ],
     author='Inaki Vazquez',
