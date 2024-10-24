@@ -1,10 +1,6 @@
 # Grid Target
 
-```{figure} ./images/grid_target.gif 
-:width: 200px
-:name: grid_target
-```
-
+![Grid Target](images/grid_target.gif)
 
 |   |   |
 |---|---|
