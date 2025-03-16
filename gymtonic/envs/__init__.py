@@ -49,6 +49,6 @@ register(
 
 register(
     id='gymtonic/BlockPush-v0',
-    entry_point='gymtonic.block_push_v0:BlockPush',
+    entry_point='gymtonic.envs.block_push_v0:BlockPush',
     max_episode_steps=500
 )

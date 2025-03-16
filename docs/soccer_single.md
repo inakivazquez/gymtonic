@@ -39,7 +39,7 @@ The player and the ball start at random positions in the pitch.
 The episode finishes if:
 1) the player scores a goal
 2) the ball goes outside the stadium
-2) 500 steps are reached (episode truncated)
+3) 500 steps are reached (episode truncated)
 
 ### Arguments
 The size of the pitch can be configured with `perimeter_side` (length of the pitch, width is half that value). Default is 10.

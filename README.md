@@ -4,7 +4,7 @@
 # gymtonic
 Pybullet-based Gymnasium compatible environments.
 
-This project provides a collection of Pybullet-based Gymnasium compatible environments. Each environment is designed to offer a unique task for reinforcement learning agents.
+This project provides a collection of Gymnasium compatible environments. Each environment is designed to offer a unique task for reinforcement learning agents.
 
 To learn more about each environment, click on the name:
 
@@ -16,5 +16,8 @@ To learn more about each environment, click on the name:
 
 ## Soccer environments
 - [SoccerSingle](docs/soccer_single.md)
+
+## Other environments
+- [BlockPush](docs/block_push.md)
 
 Feel free to explore these environments and start training your RL agents!
