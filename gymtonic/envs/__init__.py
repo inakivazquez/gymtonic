@@ -46,3 +46,9 @@ register(
     max_episode_steps=100,
     kwargs=dict(smooth_movement=True)
 )
+
+register(
+    id='gymtonic/BlockPush-v0',
+    entry_point='gymtonic.block_push_v0:BlockPush',
+    max_episode_steps=500
+)
