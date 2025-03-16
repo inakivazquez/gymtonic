@@ -4,17 +4,18 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gymtonic"
-version = "0.1.4"
+version = "0.1.5"
 authors = [
   { name="Inaki Vazquez", email="ivazquez@deusto.es" },
 ]
-description = "A set of Pybullet-based Gymnasium compatible environments."
+description = "A set of Gymnasium compatible environments."
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    "numpy==1.26.4",
-    "gymnasium==0.29.1",
-    "pybullet"
+    "numpy",
+    "gymnasium>=1.1.1",
+    "pybullet",
+    "mujoco"
 ]
 
 classifiers = [
