@@ -27,7 +27,7 @@ def generate_mujoco_xml():
     <worldbody>
         <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" friction="0.01 0.01 0.01"/>
         <body name="cube" pos="0 0 0.01">
-            <geom name="geom_cube" type="box" size="0.01 0.01 0.01" rgba="0.2 0.2 1.0 1" density="1000" friction="0.01 0.01 0.01"/>
+            <geom name="geom_cube" type="box" size="0.01 0.01 0.01" rgba="0.2 0.2 1.0 1" density="5000" friction="0.01 0.01 0.01"/>
             <joint name="cube_slide_x" type="slide" axis="1 0 0"/> <!-- Move along X -->
             <joint name="cube_slide_y" type="slide" axis="0 1 0"/> <!-- Move along Y -->
             <joint name="cube_yaw" type="hinge" axis="0 0 1"/>  <!-- Rotate around Z -->
@@ -69,7 +69,7 @@ class BlockPush(MujocoEnv):
         data = mujoco.MjData(model)
         return model, data
 
-    def __init__(self, **kwargs):
+    def __init__(self, agent_speed=1, **kwargs):
 
         default_camera_config = {
             "distance": 2.5,
@@ -104,26 +104,29 @@ class BlockPush(MujocoEnv):
             "render_fps": int(np.round(1.0 / self.dt)),
         }
 
-        # Create a data structure to hold the simulation state
-        #self.data = mujoco.MjData(self.model)
-
-        # Target pos, current pos of ee, joint positions
+        # Observation space
         self.observation_space = gym.spaces.Box(low=np.array([-2]*4 + [-np.pi], dtype=np.float32), high=np.array([+2]*4 + [+np.pi] , dtype=np.float32), shape=(5,))
 
-        # Action space is 6 joint angles and the gripper open/close level (0 to 1)
+        # Action space
         self.action_space = gym.spaces.Box(low=np.array([-1]*2, dtype=np.float32), high=np.array([+1]*2 , dtype=np.float32), shape=(2,))
 
-        self.cubes_components_ids = []
+        self.agent_speed = agent_speed
+
         idx_x = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"cube_slide_x")
         idx_y = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"cube_slide_y")
         idx_yaw = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"cube_yaw")
-        self.cubes_components_ids.append((idx_x, idx_y, idx_yaw))
+        self.cubes_components_ids = [idx_x, idx_y, idx_yaw]
 
         self.block_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "block")
         self.target_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "target")
         self.cube_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "cube")
 
-       
+    def do_simulation(self, ctrl, n_frames):
+        value = super().do_simulation(ctrl, n_frames)
+        if self.render_mode == "human":
+            self.render()
+        return value
+
     def reset_model(self):
         block_qpos_addr = self.model.jnt_qposadr[self.model.body_jntadr[self.block_id]]
         self.data.qpos[block_qpos_addr:block_qpos_addr+3] = [random.uniform(-0.5, 0.5), random.uniform(-0.5, 0.5), 0.1]
@@ -135,75 +138,105 @@ class BlockPush(MujocoEnv):
         # Necessary to call this function to update the positions before computation
         self.do_simulation(self.data.ctrl, self.frame_skip)
 
-        #target_qpos_addr = self.model.jnt_qposadr[self.model.body_jntadr[self.target_id]]
-        #self.data.qpos[target_qpos_addr:target_qpos_addr+3] = [random.uniform(-0.5, 0.5), random.uniform(-0.5, 0.5), 0.000001]
-
-        self.initial_distance = self.distance_xy(self.block_id, self.target_id)
+        self.best_distance = self.distance_xy(self.block_id, self.target_id)
 
         return self.get_observation()
 
     def step(self, action: ActType) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
         assert self.action_space.contains(action), f"Invalid Action: {action}"
 
-        self.rotate(0, action[0])
-        #self.do_simulation(self.data.ctrl, self.frame_skip)
-        self.move(0, action[1])
-        self.do_simulation(self.data.ctrl, self.frame_skip)
+        distance_done, _ = self.move(action[0], action[1])
 
         distance_agent_block = self.distance_xy(self.cube_id, self.block_id )
         distance_block_target = self.distance_xy(self.block_id, self.target_id )
 
-        reward = -0.1 # Time penalty
+        #reward = -0.1 # Time penalty
+        reward = -distance_done # Distance penalty
         reward += -distance_agent_block
-        reward += (self.initial_distance - distance_block_target)
+        reward += (self.best_distance - distance_block_target)
+        if distance_block_target < self.best_distance:
+            self.best_distance = distance_block_target
         
         terminated = False
         truncated = False
-        if distance_block_target < 0.1 and distance_block_target < self.initial_distance:
+        if distance_block_target < 0.1 and distance_block_target <= self.best_distance:
             print("Target!")
             terminated = True
             reward = 100
         obs = self.get_observation()
         info = {}
-        if self.render_mode == "human":
-            self.render()
         return obs, reward, terminated, truncated, info
 
     def get_observation(self):
         rdv_cube_to_block, yaw_diff = self.relative_distance_vector(self.cube_id, self.block_id)
         rdv_block_to_target, _ = self.relative_distance_vector(self.cube_id, self.target_id)
+
+        # Get velocity of self.block_id
+        #block_speed = self.data.qvel[self.model.body_dofadr[self.block_id] : self.model.body_dofadr[self.block_id] + 2]
+
         obs = np.concatenate([rdv_cube_to_block[0:2], rdv_block_to_target[0:2], [yaw_diff]], dtype=np.float32)
-        #print(obs)
         return obs
-    
-    def rotate(self, cube_id, value=1):
-        idx_x = self.cubes_components_ids[cube_id][0]
-        idx_y = self.cubes_components_ids[cube_id][1]
-        idx_yaw = self.cubes_components_ids[cube_id][2]
-        self.data.ctrl[cube_id * 2] = 0  # Stop X movement
-        self.data.ctrl[cube_id * 2 + 1] = 0  # Stop Y movement     
-        self.data.qvel[idx_x] = 0  # Stop X velocity
-        self.data.qvel[idx_y] = 0  # Stop Y velocity   
-        self.data.qvel[idx_yaw] = 5*value
 
-    def move(self, cube_id, value=1):
-        idx_yaw = self.cubes_components_ids[cube_id][2]
-        idx_x = self.cubes_components_ids[cube_id][0]
-        idx_y = self.cubes_components_ids[cube_id][1]
-        # Get the cube’s quaternion (assuming cube_id is the index of the cube)
-        quat = self.data.xquat[self.model.body("cube").id]
-        # Convert quaternion to yaw angle
-        yaw = np.arctan2(2 * (quat[0] * quat[3] + quat[1] * quat[2]),  
-                        1 - 2 * (quat[2]**2 + quat[3]**2))
-        # Define speed magnitude
-        speed_magnitude = 2 * value
-        # Compute speed components
-        vx = speed_magnitude * np.cos(yaw)  # Forward X direction  
-        vy = speed_magnitude * np.sin(yaw)  # Forward Y direction  
+    def move(self, speed, rotation, step_size=0.1):
+        speed = speed / 5
 
-        #self.data.qvel[idx_yaw] = 0 # Stop rotation
-        self.data.qvel[idx_x] = vx  #  X velocity
-        self.data.qvel[idx_y] = vy  #  Y velocity   
+        previous_pos = self.data.qpos[self.cube_id]
+        distance_done = 0
+
+        idx_x = self.cubes_components_ids[0]
+        idx_y = self.cubes_components_ids[1]
+        idx_yaw = self.cubes_components_ids[2]
+        
+        # Get the index of the yaw joint in qpos
+        qpos_yaw = self.model.jnt_qposadr[idx_yaw]
+
+        # Get current yaw position
+        yaw_current = self.data.qpos[qpos_yaw]
+        yaw_target = yaw_current + rotation
+
+        # Determine step direction (+ or -)
+        step_direction = np.sign(rotation)
+
+        # Get initial velocities
+        vx = self.data.qvel[idx_x]
+        vy = self.data.qvel[idx_y]
+        current_speed = np.linalg.norm([vx, vy])
+        # Define speed
+        current_speed = self.agent_speed * speed
+
+        # Perform gradual rotation
+        while abs(yaw_target - yaw_current) > step_size:
+            yaw_current += step_size * step_direction
+            self.data.qpos[qpos_yaw] = yaw_current
+
+            # Rotate velocity vector
+            vx_new = current_speed * np.cos(yaw_current)  # Forward X direction  
+            vy_new = current_speed * np.sin(yaw_current)  # Forward Y direction  
+
+            # Apply new velocities
+            self.data.qvel[idx_x] = vx_new
+            self.data.qvel[idx_y] = vy_new
+
+            self.do_simulation(self.data.ctrl, self.frame_skip)
+
+            distance_done += np.linalg.norm(self.data.qpos[self.cube_id] - previous_pos)
+            previous_pos = self.data.qpos[self.cube_id]
+
+        # Apply final step (if any remaining rotation is < step_size)
+        self.data.qpos[qpos_yaw] = yaw_target
+
+        # Rotate velocity vector
+        vx_new = current_speed * np.cos(yaw_target)  # Forward X direction  
+        vy_new = current_speed * np.sin(yaw_target)  # Forward Y direction  
+
+        # Apply new velocities
+        self.data.qvel[idx_x] = vx_new
+        self.data.qvel[idx_y] = vy_new
+        
+        self.do_simulation(self.data.ctrl, self.frame_skip)
+
+        return distance_done, abs(rotation)
+
 
     def distance_xy(self, body_id_1, body_id_2):
         """

@@ -16,7 +16,7 @@
 The agent has to push the block towards the target area.
 
 ### Action Space
-The action space has two continuous dimensions. The first one [-1, 1] represents the rotation to apply to the agent, the second, also in the range [-1, 1], represents the speed to move in the forward direction according to the agent orientation (negative values move backwards). 
+The action space has two continuous dimensions. The first one [-1, 1] represents the speed to move in the forward direction according to the agent orientation (negative values move backwards), the second, also in the range [-1, 1], represents the rotation to apply during the movement. 
 
 ### Observation Space
 The state is an 5-dimensional vector representing:
@@ -27,9 +27,9 @@ The state is an 5-dimensional vector representing:
 ### Rewards
 Rewards are distributed ass follows:
 - +100 for successfully pushing the block until it enters the target area
-- -d1 at avery step, where d1 is the distance between the agent and the block
-- +d2 at avery step, where d2 = initial distance between the block and the target area - current distance between the block and the target area
-- -0.1 per step (time penalty)
+- -d1 at every step, where d1 is the distance covered by the agent in that step (to promote shorter paths)
+- -d2 at avery step, where d2 is the distance between the agent and the block
+- +d3 at every step, where d3 is the difference between the shortest distance fromt the block to the target in this episode and their current distance (to promote reduding that distance)
 
 ### Starting State
 The agent and the block appear at random positions.
