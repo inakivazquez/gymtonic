@@ -69,7 +69,7 @@ class BlockPush(MujocoEnv):
         data = mujoco.MjData(model)
         return model, data
 
-    def __init__(self, agent_speed=1, **kwargs):
+    def __init__(self, agent_speed=0.5, **kwargs):
 
         default_camera_config = {
             "distance": 2.5,
@@ -169,18 +169,16 @@ class BlockPush(MujocoEnv):
 
     def get_observation(self):
         rdv_cube_to_block, yaw_diff = self.relative_distance_vector(self.cube_id, self.block_id)
-        rdv_block_to_target, _ = self.relative_distance_vector(self.cube_id, self.target_id)
+        rdv_cube_to_target, _ = self.relative_distance_vector(self.cube_id, self.target_id)
 
         # Get velocity of self.block_id
         #block_speed = self.data.qvel[self.model.body_dofadr[self.block_id] : self.model.body_dofadr[self.block_id] + 2]
 
-        obs = np.concatenate([rdv_cube_to_block[0:2], rdv_block_to_target[0:2], [yaw_diff]], dtype=np.float32)
+        obs = np.concatenate([rdv_cube_to_block[0:2], rdv_cube_to_target[0:2], [yaw_diff]], dtype=np.float32)
         return obs
 
-    def move(self, speed, rotation, step_size=0.1):
-        speed = speed / 5
-
-        previous_pos = self.data.qpos[self.cube_id]
+    def move(self, speed, rotation, rotation_step_size=0.1):
+        previous_pos = self.data.xpos[self.cube_id]
         distance_done = 0
 
         idx_x = self.cubes_components_ids[0]
@@ -197,16 +195,12 @@ class BlockPush(MujocoEnv):
         # Determine step direction (+ or -)
         step_direction = np.sign(rotation)
 
-        # Get initial velocities
-        vx = self.data.qvel[idx_x]
-        vy = self.data.qvel[idx_y]
-        current_speed = np.linalg.norm([vx, vy])
-        # Define speed
+        # Initial speed at the beginning of the movement
         current_speed = self.agent_speed * speed
 
         # Perform gradual rotation
-        while abs(yaw_target - yaw_current) > step_size:
-            yaw_current += step_size * step_direction
+        while abs(yaw_target - yaw_current) > rotation_step_size:
+            yaw_current += rotation_step_size * step_direction
             self.data.qpos[qpos_yaw] = yaw_current
 
             # Rotate velocity vector
@@ -219,22 +213,34 @@ class BlockPush(MujocoEnv):
 
             self.do_simulation(self.data.ctrl, self.frame_skip)
 
-            distance_done += np.linalg.norm(self.data.qpos[self.cube_id] - previous_pos)
-            previous_pos = self.data.qpos[self.cube_id]
+            distance_done += np.linalg.norm(self.data.xpos[self.cube_id] - previous_pos)
+            previous_pos = self.data.xpos[self.cube_id]
+
+            # SPEED_MODE = 0 (force constant speed during the movement
+            # SPEED_MODE = 1 (do not force constant speed during the movement)
+            SPEED_MODE = 1
+            if SPEED_MODE == 0:
+                # Reset speed to the initial value
+                current_speed = self.agent_speed * speed
+            else:
+                # Update velocities after simulation step (they might have reduced due to friction) 
+                vx = self.data.qvel[idx_x]
+                vy = self.data.qvel[idx_y]
+                current_speed = np.linalg.norm([vx, vy])
 
         # Apply final step (if any remaining rotation is < step_size)
         self.data.qpos[qpos_yaw] = yaw_target
 
-        # Rotate velocity vector
+        # Apply final speed components
         vx_new = current_speed * np.cos(yaw_target)  # Forward X direction  
         vy_new = current_speed * np.sin(yaw_target)  # Forward Y direction  
-
-        # Apply new velocities
         self.data.qvel[idx_x] = vx_new
         self.data.qvel[idx_y] = vy_new
         
         self.do_simulation(self.data.ctrl, self.frame_skip)
 
+        # Update the final distance done
+        distance_done += np.linalg.norm(self.data.xpos[self.cube_id] - previous_pos)
         return distance_done, abs(rotation)
 
 
