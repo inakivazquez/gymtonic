@@ -52,3 +52,9 @@ register(
     entry_point='gymtonic.envs.block_push_v0:BlockPush',
     max_episode_steps=500
 )
+
+register(
+    id='particles/BlockPushRay-v0',
+    entry_point='particles.block_push_ray_v0:BlockPushRay',
+    max_episode_steps=500
+)
