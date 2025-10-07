@@ -6,7 +6,7 @@
 |---|---|
 | Action Space | Discrete(4) |
 | Observation Space | MultiDiscrete([3] * n_rows * n_columns) |
-| Import | `gymnasium.make("gymtonic/GridTarget_v0")` | 
+| Import | `gymnasium.make("gymtonic/GridTarget-v0")` | 
 
 
 ### Description
