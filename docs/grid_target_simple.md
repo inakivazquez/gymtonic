@@ -7,7 +7,7 @@
 |---|---|
 | Action Space | Discrete(4) |
 | Observation Space | Discrete(`n_rows` x `n_columns`) |
-| Import | `gymnasium.make("gymtonic/GridTargetSimple_v0")` | 
+| Import | `gymnasium.make("gymtonic/GridTargetSimple-v0")` | 
 
 
 ### Description
