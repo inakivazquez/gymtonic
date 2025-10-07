@@ -9,7 +9,7 @@
 | Observation Shape | (2,) |
 | Observation High | [n_columns, n_rows  ] |
 | Observation Low | [-n_columns, -n_rows  ] |
-| Import | `gymnasium.make("gymtonic/GridTargetDirectional_v0")` | 
+| Import | `gymnasium.make("gymtonic/GridTargetDirectional-v0")` | 
 
 
 ### Description
